@@ -1,0 +1,62 @@
+# This Cloud Build configuration builds a Docker image and pushes it to Google Container Registry (GCR).
+
+steps:
+  # Step 1: Build the Docker Image
+  # This step uses the 'docker' builder to build your Docker image.
+  # The '-t' flag tags the image with the full path for your Google Container Registry.
+  # The '.' indicates that the Dockerfile is in the current directory.
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t',
+      'gcr.io/disco-beach-461517-m5/react-image:latest', # Tagging for Google Container Registry
+      '.'
+    ]
+    # Step 3: Deploy the Docker Image to Cloud Run
+  # This step uses the 'gcloud' builder to deploy the image to Cloud Run.
+  # Replace 'my-react-service' with your desired Cloud Run service name.
+  # Replace 'us-central1' with the desired Google Cloud region for your Cloud Run service.
+  # '--allow-unauthenticated' makes the service publicly accessible; remove if not needed.
+  # '--port' specifies the port your application listens on within the container (e.g., 80 for HTTP).
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: [
+      'run',
+      'deploy',
+      'react-app-service', # Name of your Cloud Run service
+      '--image', 'gcr.io/disco-beach-461517-m5/react-image:latest', # Image to deploy
+      '--region', 'us-central1', # Cloud Run region
+      '--platform', 'managed',
+      '--allow-unauthenticated', # Make the service publicly accessible (optional)
+      '--port', '80', # Specify the port your application listens on
+      '--project', 'disco-beach-461517-m5' # Specify your Google Cloud Project ID
+    ]
+
+  # Step 2: Push the Docker Image to Google Container Registry
+  # This step uses the 'docker' builder again to push the previously built and tagged image
+  # to your specified GCR path. Cloud Build is automatically
+  # authenticated to push to GCR within the same project.
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'gcr.io/disco-beach-461517-m5/react-image:latest' # Pushing to Google Container Registry
+    ]
+
+# You can optionally specify a `timeout` for the entire build process.
+# timeout: '1200s' # 20 minutes (uncomment to enable)
+
+# You can also specify an `images` field to output the names of the images built,
+# which can be useful for subsequent steps or for viewing in the Cloud Build UI.
+# images:
+#   - 'gcr.io/disco-beach-461517-m5/react-image:latest' # Uncomment to enable image output
+
+# Removed logsBucket as requested.
+# Using 'options' to control logging behavior, specifically default_logs_bucket_behavior.
+options:
+  # Use regional user-owned buckets for logs. This requires your project to have
+  # been configured for regional logging buckets. If this option doesn't work
+  # or if you prefer Cloud Logging only, you can use 'logging: CLOUD_LOGGING_ONLY'.
+  default_logs_bucket_behavior: REGIONAL_USER_OWNED_BUCKET
+  # Alternatively, send logs only to Cloud Logging (no GCS bucket for logs)
+  # logging: CLOUD_LOGGING_ONLY
+  # Or, disable all logging (not recommended for debugging)
+  # logging: NONE
